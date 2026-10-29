@@ -1,0 +1,823 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>비렌스 사업화 운영 대시보드</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Nanum+Myeongjo:wght@700;800&family=IBM+Plex+Sans+KR:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+  :root{
+    --ground:#FAF9F4; --surface:#FFFFFF; --sunk:#F2F0E7;
+    --ink:#1A1E16; --ink2:#3D4337; --muted:#5F6555;
+    --rule:#D6D2C2; --rule2:#E8E5D9;
+    --green:#3F6B4F; --green-d:#2A4A38; --green-w:#E6EFE6;
+    --slate:#3F566B; --slate-d:#2B3E4E; --slate-w:#E4EBF0;
+    --brass:#7A5C22; --brass-d:#5C4518; --brass-w:#F3ECD9;
+    --teal:#22615F; --teal-w:#E0EDEC;
+    --clay:#8B4A2F; --clay-w:#F6E7DE;
+    --off:#9B9A8E; --off-w:#EFEDE4;
+  }
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+    --ground:#15180F; --surface:#1D2118; --sunk:#252A1F;
+    --ink:#F0EDE1; --ink2:#CFCDBE; --muted:#9AA08F;
+    --rule:#3A4033; --rule2:#2C3226;
+    --green:#8DB697; --green-d:#B0CDB6; --green-w:#20291F;
+    --slate:#9CBAD0; --slate-d:#B6CEE0; --slate-w:#1E2830;
+    --brass:#D2B173; --brass-d:#E2C78E; --brass-w:#2C2718;
+    --teal:#88BFBC; --teal-w:#1A2827;
+    --clay:#DA9873; --clay-w:#30221C;
+    --off:#6E7263; --off-w:#22261C;
+  }}
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--ground);color:var(--ink);
+    font-family:"IBM Plex Sans KR","Apple SD Gothic Neo","Malgun Gothic",sans-serif;
+    font-size:15px;line-height:1.7;-webkit-font-smoothing:antialiased;}
+  img{max-width:100%;}
+  .wrap{max-width:1180px;margin:0 auto;padding:0 24px 90px;}
+
+  .setup{background:var(--brass-w);color:var(--brass);border:1px solid var(--brass);
+    padding:12px 18px;margin:16px 0 0;font-size:13px;line-height:1.6;}
+
+  .bar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;
+    padding:24px 0 18px;border-bottom:2px solid var(--green);}
+  .mark{width:48px;height:48px;background:var(--green);color:var(--surface);
+    display:grid;place-content:center;text-align:center;line-height:1.05;flex:none;}
+  @media (prefers-color-scheme:dark){:root:not([data-theme="light"]) .mark{color:var(--ground);}}
+  .mark b{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:17px;}
+  .mark span{display:block;font-family:"IBM Plex Mono",monospace;font-size:7px;
+    letter-spacing:.16em;opacity:.9;margin-top:2px;}
+  .bar h1{font-family:"Nanum Myeongjo",serif;font-weight:800;font-size:22px;
+    letter-spacing:-.01em;margin:0;line-height:1.3;}
+  .bar .sub{font-size:12.5px;color:var(--muted);margin-top:2px;}
+  .sync{margin-left:auto;display:flex;align-items:center;gap:8px;
+    font-family:"IBM Plex Mono",monospace;font-size:11.5px;color:var(--ink2);
+    border:1px solid var(--rule);background:var(--surface);padding:7px 13px;}
+  .dot{width:7px;height:7px;border-radius:50%;background:var(--off);flex:none;}
+  .sync.on .dot{background:var(--green);}
+  .sync.off .dot{background:var(--clay);}
+  .sync.busy .dot{background:var(--brass);}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));
+    border:1px solid var(--rule);border-top:none;background:var(--surface);}
+  .kpi{padding:16px 20px;border-right:1px solid var(--rule2);}
+  .kpi:last-child{border-right:none;}
+  .kpi dt{font-size:11.5px;color:var(--muted);margin-bottom:4px;}
+  .kpi dd{margin:0;font-family:"IBM Plex Mono",monospace;font-size:24px;font-weight:600;
+    line-height:1.15;font-variant-numeric:tabular-nums;}
+  .kpi dd small{font-size:12px;font-weight:400;color:var(--muted);margin-left:3px;
+    font-family:"IBM Plex Sans KR",sans-serif;}
+  .kpi.acc dd{color:var(--green-d);}
+  .kpi.warn dd{color:var(--clay);}
+  .meter{height:5px;background:var(--rule2);margin-top:8px;}
+  .meter i{display:block;height:100%;background:var(--green);}
+
+  .tabs{display:flex;flex-wrap:wrap;gap:0;border:1px solid var(--rule);border-top:none;
+    background:var(--sunk);}
+  .tabs button{flex:1;min-width:120px;font-family:inherit;font-size:13.5px;
+    background:none;border:none;border-right:1px solid var(--rule2);
+    padding:12px 10px;cursor:pointer;color:var(--muted);position:relative;}
+  .tabs button:last-child{border-right:none;}
+  .tabs button[aria-selected="true"]{background:var(--surface);color:var(--ink);font-weight:600;
+    box-shadow:inset 0 -3px 0 var(--green);}
+  .tabs button b{font-family:"IBM Plex Mono",monospace;font-size:11px;
+    margin-left:6px;color:var(--muted);font-weight:500;}
+
+  section{padding-top:38px;}
+  h2.sec{font-family:"Nanum Myeongjo",serif;font-weight:700;font-size:20px;margin:0 0 4px;
+    display:flex;align-items:baseline;gap:11px;flex-wrap:wrap;}
+  h2.sec .n{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:500;
+    color:var(--green);letter-spacing:.08em;}
+  .lede{color:var(--ink2);font-size:13.5px;max-width:76ch;margin:0 0 16px;}
+
+  .ctl{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;}
+  .chip{font-size:12.5px;padding:6px 13px;border:1px solid transparent;cursor:pointer;
+    display:inline-flex;align-items:center;gap:8px;background:var(--off-w);
+    color:var(--muted);font-family:inherit;}
+  .chip b{font-weight:600;font-variant-numeric:tabular-nums;font-family:"IBM Plex Mono",monospace;}
+  .chip[aria-pressed="true"]{border-color:currentColor;font-weight:500;}
+  .c-todo{background:var(--off-w);color:var(--muted);}
+  .c-doing{background:var(--brass-w);color:var(--brass);}
+  .c-done{background:var(--green-w);color:var(--green-d);}
+  .c-na{background:var(--off-w);color:var(--off);}
+  .s-review{background:var(--slate-w);color:var(--slate);}
+  .s-prep{background:var(--brass-w);color:var(--brass);}
+  .s-filed{background:var(--teal-w);color:var(--teal);}
+  .s-won{background:var(--green-w);color:var(--green-d);}
+  .s-lost{background:var(--clay-w);color:var(--clay);}
+  .s-hold{background:var(--off-w);color:var(--muted);}
+  button.ghost{font-size:12.5px;font-family:inherit;background:var(--surface);
+    border:1px solid var(--rule);color:var(--ink2);padding:6px 12px;cursor:pointer;}
+  button.ghost:hover{border-color:var(--green);color:var(--green-d);}
+  select:focus-visible,input:focus-visible,textarea:focus-visible,button:focus-visible{
+    outline:2px solid var(--green);outline-offset:1px;}
+
+  .grp{margin-bottom:22px;background:var(--surface);border:1px solid var(--rule);}
+  .grp-h{display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    padding:12px 18px;border-bottom:1px solid var(--rule);background:var(--sunk);}
+  .grp-h .sw{width:4px;height:24px;flex:none;}
+  .grp-h h3{margin:0;font-size:15px;font-weight:600;}
+  .grp-h .meta{margin-left:auto;display:flex;gap:16px;align-items:baseline;
+    font-family:"IBM Plex Mono",monospace;font-size:12px;color:var(--muted);
+    font-variant-numeric:tabular-nums;}
+  .grp-h .meta b{color:var(--ink);font-weight:600;}
+  .grp-h .desc{width:100%;font-size:12px;color:var(--muted);padding-left:16px;margin-top:-3px;}
+
+  /* 체크리스트 */
+  .ck{list-style:none;margin:0;padding:0;}
+  .ck li{display:grid;grid-template-columns:132px 1fr 150px;gap:0 16px;
+    padding:11px 18px;border-bottom:1px solid var(--rule2);align-items:start;}
+  .ck li:last-child{border-bottom:none;}
+  .ck li.done .txt b{text-decoration:line-through;color:var(--muted);}
+  .ck li.na{opacity:.55;}
+  .ck .txt b{font-weight:600;font-size:14px;display:block;}
+  .ck .txt p{margin:2px 0 0;font-size:12px;color:var(--muted);line-height:1.5;}
+  .ck .txt .tag{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+    padding:2px 6px;margin-left:6px;vertical-align:2px;background:var(--clay-w);color:var(--clay);}
+  .ck select{font-family:inherit;font-size:12.5px;padding:5px 7px;background:var(--ground);
+    color:var(--ink);border:1px solid var(--rule);width:100%;}
+  .ck textarea{font-family:inherit;font-size:12px;padding:5px 7px;width:100%;
+    background:var(--ground);color:var(--ink);border:1px solid var(--rule);
+    resize:vertical;min-height:32px;line-height:1.45;}
+
+  /* 과제 테이블 */
+  .tscroll{overflow-x:auto;}
+  table{border-collapse:collapse;width:100%;min-width:920px;font-size:13.5px;}
+  th{text-align:left;font-size:11px;font-weight:500;color:var(--muted);
+    padding:9px 12px;border-bottom:1px solid var(--rule);white-space:nowrap;}
+  th:first-child,td:first-child{padding-left:18px;}
+  th:last-child,td:last-child{padding-right:18px;}
+  th.r,td.r{text-align:right;}
+  td{padding:12px;border-bottom:1px solid var(--rule2);vertical-align:top;line-height:1.5;}
+  tbody tr:last-child td{border-bottom:none;}
+  tr.gated td{color:var(--off);}
+  td.nm{font-weight:600;width:22%;min-width:180px;}
+  td.nm small{display:block;font-weight:400;color:var(--muted);font-size:11.5px;margin-top:2px;}
+  tr.gated td.nm small{color:var(--off);}
+  td.amt{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;
+    font-weight:600;white-space:nowrap;}
+  td.win{font-family:"IBM Plex Mono",monospace;font-size:12px;white-space:nowrap;}
+  td.note{font-size:12px;color:var(--muted);max-width:290px;}
+  td.note b{color:var(--clay);font-weight:600;}
+  td select{font-family:inherit;font-size:12.5px;padding:5px 6px;background:var(--ground);
+    color:var(--ink);border:1px solid var(--rule);width:100%;min-width:92px;}
+  td textarea{font-family:inherit;font-size:12px;padding:5px 7px;width:100%;min-width:150px;
+    background:var(--ground);color:var(--ink);border:1px solid var(--rule);
+    resize:vertical;min-height:32px;line-height:1.45;}
+  .bd{display:inline-block;font-family:"IBM Plex Mono",monospace;font-size:9.5px;
+    padding:2px 6px;margin-left:6px;vertical-align:2px;font-weight:500;}
+  .bd-dday{background:var(--clay-w);color:var(--clay);}
+  .bd-kind{background:var(--slate-w);color:var(--slate);}
+  .bd-chk{background:var(--off-w);color:var(--muted);}
+  .bd-loan{background:var(--brass-w);color:var(--brass);}
+  .bd-mfg{background:var(--teal-w);color:var(--teal);}
+  .empty{padding:16px 18px;font-size:13px;color:var(--muted);}
+
+  .ent-cfg{background:var(--surface);border:1px solid var(--rule);display:flex;
+    flex-wrap:wrap;gap:14px 22px;padding:14px 18px;margin-bottom:16px;align-items:flex-end;}
+  .fld{display:flex;flex-direction:column;gap:4px;}
+  .fld label{font-size:11px;color:var(--muted);}
+  .fld select,.fld input{font-family:inherit;font-size:13.5px;background:var(--ground);
+    color:var(--ink);border:1px solid var(--rule);padding:6px 9px;min-width:130px;}
+
+  ul.gj{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;}
+  ul.gj>li{padding-left:16px;position:relative;font-size:13.5px;}
+  ul.gj>li::before{content:"○";position:absolute;left:0;top:0;color:var(--green);
+    font-size:9px;line-height:2.5;}
+  .rule{border:1px solid var(--rule);border-left:3px solid var(--clay);
+    background:var(--surface);padding:16px 20px;margin-top:12px;}
+  .rule h3{font-size:14px;font-weight:600;margin:0 0 7px;color:var(--clay);}
+  .rule h3:not(:first-child){margin-top:17px;}
+  .rule ul.gj>li::before{color:var(--clay);}
+
+  footer{margin-top:46px;padding-top:18px;border-top:1px solid var(--rule);
+    font-size:12px;color:var(--muted);line-height:1.7;}
+  @media (max-width:760px){
+    .ck li{grid-template-columns:1fr;gap:7px;}
+    .kpi{border-right:none;border-bottom:1px solid var(--rule2);}
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<div id="setup" class="setup" hidden></div>
+
+<div class="bar">
+  <div class="mark"><b>V</b><span>UMBRA</span></div>
+  <div>
+    <h1>비렌스 사업화 운영 대시보드</h1>
+    <div class="sub">사업자 3개 · 준비 체크리스트와 과제 파이프라인 &nbsp;·&nbsp; 2026년 공고 기준</div>
+  </div>
+  <div class="sync" id="sync"><span class="dot"></span><span id="sync-t">불러오는 중</span></div>
+</div>
+
+<dl class="kpis">
+  <div class="kpi acc"><dt>준비 완료율</dt><dd><span id="k-pct">0</span><small>%</small>
+    <div class="meter"><i id="k-bar" style="width:0%"></i></div></dd></div>
+  <div class="kpi"><dt>남은 준비 항목</dt><dd><span id="k-left">0</span><small>건</small></dd></div>
+  <div class="kpi"><dt>신청 가능 과제</dt><dd><span id="k-elig">0</span><small>/ <span id="k-all">0</span>건</small></dd></div>
+  <div class="kpi acc"><dt>지원금 상한 합계</dt><dd><span id="k-sum">0</span><small>원</small></dd></div>
+  <div class="kpi warn"><dt>가장 임박한 마감</dt><dd id="k-dday">–</dd></div>
+</dl>
+
+<div class="tabs" id="tabs"></div>
+
+<section>
+  <h2 class="sec"><span class="n">01</span>사업자 설정</h2>
+  <p class="lede">업태를 제조업으로 가져갈지 여부가 과제 가부를 바꿉니다. 값을 바꾸면 아래 과제 목록이 즉시 갱신됩니다.</p>
+  <div class="ent-cfg" id="cfg"></div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">02</span>준비 체크리스트</h2>
+  <p class="lede">과제 신청 전에 끝내야 하는 항목입니다. 상태를 바꾸면 양측 화면에 반영되고 상단 완료율이 올라갑니다.</p>
+  <div class="ctl" id="ck-ctl"></div>
+  <div id="checks"></div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">03</span>과제 파이프라인</h2>
+  <p class="lede">지원 성격별 5개 그룹. 상태·담당·메모는 양측이 함께 편집합니다.
+    상단의 지원금 상한 합계는 공고상 최대치를 단순 합산한 값이며, 창업사업화 과제의 중복 수행 제한은 반영하지 않았습니다.
+    실제로는 세 사업자를 통틀어 창업사업화 과제 선정은 사업자당 1건으로 보는 편이 현실적입니다.</p>
+  <div class="ctl" id="pl-ctl"></div>
+  <div id="cats"></div>
+</section>
+
+<section>
+  <h2 class="sec"><span class="n">04</span>공동 준수 사항</h2>
+  <p class="lede">정부지원사업 제3자 개입 규제가 강화되었습니다. 수혜기업과 운영대행 양측이 함께 지켜야 하는 선입니다.</p>
+  <div class="rule">
+    <h3>사업계획서는 수혜기업 명의로, 내용은 대표가 설명할 수 있어야 함</h3>
+    <ul class="gj">
+      <li>중기부는 사업계획서 대리 작성을 통한 부정수급을 명시적으로 금지. 적발 시 전액 환수 및 향후 참여제한이며, 창업진흥원이 제3자 부당개입 신고채널을 운영 중</li>
+      <li>2025년부터 창업자 역량 검증이 도입되어 시장 전문가의 1:1 심층 면담으로 아이템 이해도와 실행력을 확인함</li>
+      <li>운영대행의 역할은 자료 조사, 구조 설계, 표·수치 정리, 검토 의견 제공까지. 최종 작성과 진술은 수혜기업이 수행하고 그 과정을 기록으로 남길 것</li>
+    </ul>
+    <h3>외부 용역비는 사업비가 아닌 자부담 재원에서 집행</h3>
+    <ul class="gj">
+      <li>사업계획서 작성 관련 용역비는 정부지원 사업비의 불인정 항목임</li>
+      <li>실제 서비스 없이 세금계산서를 발행하고 대금을 돌려받는 방식은 보조금 관리에 관한 법률상 10년 이하 징역, 공공재정환수법상 부정수급액의 최대 5배 제재부가금 대상</li>
+    </ul>
+    <h3>제3자 개입 규제 입법이 진행 중</h3>
+    <ul class="gj">
+      <li>중기부가 2026년 2월 정책자금 부당개입 근절 법안을 추진. 자문·서류작성 보수의 상한을 대통령령으로 정하고 상한 초과 수수를 부당개입으로 규정하는 내용</li>
+      <li>수행 주체를 경영지도사·기술지도사 등 자격 보유자로 제한하는 컨설팅 등록제도 함께 논의 중. 계약서에 법령 변경 시 조정 조항을 둘 것</li>
+    </ul>
+  </div>
+</section>
+
+<footer>
+  ※ 2026년 공고 기준. 2027년 시행계획에서 요건·금액·일정이 변동될 수 있으므로 신청 전 해당 연도 공고문을 대조해야 함.<br>
+  ※ 업태·종목은 부가가치세법 기본통칙과 한국표준산업분류 해설서에 근거한 정리이며, 등록 전 세무대리인 확인이 필요함.<br>
+  ※ 체크리스트 상태·메모와 사업자 설정은 이 페이지를 여는 모든 사람에게 공유됨.
+</footer>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   설정 — 이 두 줄만 바꾸면 됩니다
+   ══════════════════════════════════════════════════════ */
+var ENDPOINT = "https://script.google.com/macros/s/AKfycbyCCLFKD5sX6Stq-bl6Ivza5-Mkv1w64wAyn1_AmDTKKI8gk6_Krsf0R1d5Rch4nus/exec";
+var PASSKEY  = "virens2027";
+/* ════════════════════════════════════════════════════ */
+
+var ENTS = [
+  {k:"A", l:"개인사업자 (도소매)", c:"var(--slate)", d:"2023년 개업 · 1인 사업장 · 소상공인 해당"},
+  {k:"B", l:"신규 법인 ① 화장품", c:"var(--green)", d:"설립 예정 · 창업 3년 이내 구간"},
+  {k:"C", l:"신규 법인 ② 건기식", c:"var(--brass)", d:"설립 예정 · 창업 3년 이내 구간"}
+];
+
+var CATS = [
+  {k:"startup", l:"창업 및 금융지원", c:"var(--green)"},
+  {k:"product", l:"제품화 지원", c:"var(--brass)"},
+  {k:"mktkr",   l:"마케팅 지원 · 국내", c:"var(--slate)"},
+  {k:"mktgl",   l:"마케팅 지원 · 해외", c:"var(--teal)"},
+  {k:"cert",    l:"해외인증 지원", c:"var(--clay)"}
+];
+
+/* 과제 카탈로그. ent = 해당 사업자, gate = 추가 조건 */
+var CATALOG = [
+ {id:"dokyak",ent:["A"],c:"startup",n:"창업도약패키지(일반형)",o:"창업진흥원",amt:20000,win:"1월 하순~2월 중순",
+  note:"창업 3년 초과 7년 이내. 2023년 개업이면 2027년 공고에서 이 구간. 매출액 요건 없음. 단가 최대"},
+ {id:"chogi_b",ent:["B"],c:"startup",n:"초기창업패키지(일반형)",o:"창업진흥원",amt:10000,win:"1~2월",
+  note:"창업 3년 이내. 평균 5천만, 수도권 자부담 30%"},
+ {id:"chogi_c",ent:["C"],c:"startup",n:"초기창업패키지(일반형)",o:"창업진흥원",amt:10000,win:"1~2월",
+  note:"창업 3년 이내. 같은 대표가 두 법인으로 동시 신청하면 중복 수행 제한에 걸릴 수 있음"},
+ {id:"univ",ent:["A","B","C"],c:"startup",n:"창업중심대학 (지역기반)",o:"권역별 대학",amt:10000,win:"3.3~3.23",
+  note:"예비창업자부터 업력 7년 이내. 본점 소재 권역 대학만 선택 가능. 평균 5천만"},
+ {id:"doyak",ent:["A"],c:"startup",n:"소상공인 도약 지원사업",o:"소진공",amt:10000,win:"4.1~4.24",
+  note:"1단계 300만 → 2단계 6천만 → 3단계 추가 4천만. 오디션 방식"},
+ {id:"vouch_b",ent:["B"],c:"startup",n:"중소기업 혁신바우처",o:"중기부",amt:5000,win:"전년 11~12월 / 2월 말",
+  gate:{mfg:1}, note:"제조업 등록 시에만 해당. 디자인·브랜드 2천만, 홍보·광고 2천만, 시제품 3천만. 매출 120억 이하 소기업"},
+ {id:"vouch_c",ent:["C"],c:"startup",n:"중소기업 혁신바우처",o:"중기부",amt:5000,win:"전년 11~12월 / 2월 말",
+  gate:{mfg:1}, note:"제조업 등록 시에만 해당. 건강기능식품 제조업도 C10에 속해 요건 범위 안"},
+ {id:"fund",ent:["A"],c:"startup",n:"소상공인 정책자금",o:"소진공",amt:7000,loan:1,win:"연중",
+  note:"일반경영안정자금 기준, 5년(거치 2년). 금리는 분기마다 변동. 상환 의무가 있는 융자"},
+
+ {id:"ip",ent:["A"],c:"product",n:"소상공인 IP창출 종합패키지",o:"지식재산처·RIPC",amt:1760,win:"5.19~6.15",
+  note:"총 과업비 2,200만 중 정부 1,760만, 자부담 20%. 브랜드+패키지 디자인에 상표·디자인 각 1건 출원 포함. 과업기간 100일"},
+ {id:"kidp",ent:["B","C"],c:"product",n:"디자인·기술협업 전주기 1단계",o:"한국디자인진흥원",amt:10000,win:"~3.24",
+  note:"디자인전문회사 1 + 기술기업 1 컨소시엄. 제품기획·디자인개발·시제품·IP출원·규격인증 포괄. 자부담 현금 10%"},
+ {id:"didim",ent:["B","C"],c:"product",n:"창업성장기술개발(디딤돌)",o:"중기부 R&D",amt:12000,win:"연 3차수",
+  note:"업력 7년 이하, 매출 20억 미만. 처방·제형 개발을 과제화해야 성립. 정부출연 75% 내외"},
+ {id:"foodfn",ent:["C"],c:"product",n:"식품기능성평가지원",o:"농식품부·한국식품연구원",amt:12000,win:"전년 12월~1월",
+  note:"국산 농산물 유래 소재 한정. 준비단계 4~5천만, 인체적용시험 1.2억. 국고 40~50%, 기업부담 50~60%"},
+
+ {id:"homeshop",ent:["B","C"],c:"mktkr",n:"창업기업 온라인 판로지원 (홈쇼핑)",o:"한국중소벤처기업유통원",amt:3500,win:"6.5~6.19",
+  note:"창업 7년 미만. 현대홈쇼핑 입점·편성, 입점비·제작비 정부 100% 지원. 판매수수료와 변동비는 자부담"},
+ {id:"onmall",ent:["A"],c:"mktkr",n:"소상공인 온라인판로 지원",o:"소진공·유통원",amt:0,chk:1,win:"연 3차수",
+  note:"대형 온라인쇼핑몰 단독딜·기획전 노출, 로컬상품관 입점. 지원한도는 차수별 공고에만 공개"},
+ {id:"kobaco",ent:["A","B","C"],c:"mktkr",n:"혁신형 중소기업 방송광고 활성화",o:"코바코",amt:0,chk:1,win:"연 2차수",
+  note:"방송광고 제작비 지원과 광고비 할인 두 갈래. 지원한도는 차수별 공고 확인 필요"},
+ {id:"bweek",ent:["A","B","C"],c:"mktkr",n:"서울뷰티위크 비즈니스 밋업 피칭",o:"서울시",amt:2000,win:"5.26~6.26",
+  gate:{seoul:1}, note:"예비창업자 및 창업 7년 이내. 연령 제한 없음. 상금 총 2천만. 자금보다 레퍼런스 목적"},
+
+ {id:"logi",ent:["A","B","C"],c:"mktgl",n:"온라인수출 공동물류",o:"중진공",amt:3000,win:"연 2회",
+  note:"내수기업 1천만~수출강소 3천만. 풀필먼트 이용료 지원, 자부담 30%"},
+ {id:"mall",ent:["A","B","C"],c:"mktgl",n:"글로벌쇼핑몰 활용 판매지원",o:"중진공",amt:300,win:"연중",
+  note:"Shopee·Amazon 직접판매 또는 지역 전문셀러 위탁판매 + 공동마케팅"},
+ {id:"kbrand",ent:["A","B","C"],c:"mktgl",n:"K-브랜드 챌린지",o:"중진공",amt:0,win:"7.27~8.7",
+  note:"자사 브랜드 보유, 내수 또는 수출 500만불 미만. 팝업스토어·바이어 상담. 후속 수출사업 우선선정"},
+ {id:"gmkt",ent:["B"],c:"mktgl",n:"글로벌 온라인 유통 디지털 마케팅",o:"대한화장품산업연구원",amt:0,win:"차수별",
+  note:"디지털 콘텐츠 제작, 해외 이커머스·SNS 마케팅 컨설팅. 100개 브랜드"},
+ {id:"ful",ent:["B"],c:"mktgl",n:"미국 화장품 물류지원",o:"대한화장품산업연구원",amt:0,win:"2월~",
+  note:"LA 물류창고 2,000 파레트. 자부담 30% 수준, 200개사 이상"},
+ {id:"khidi",ent:["B"],c:"mktgl",n:"K뷰티 해외 판매장·팝업스토어",o:"한국보건산업진흥원",amt:0,win:"연중",
+  note:"팝업(시장성 검증) → 판매장(현지 정착) → 플래그십허브(확산)"},
+
+ {id:"cert",ent:["A","B","C"],c:"cert",n:"해외규격인증획득지원",o:"중기부·중진공",amt:10000,win:"1.30~11.30 상시",
+  due:"2026-11-30", note:"전년 직접수출 5,000만불 미만. 연 4건·1억 한도. CPNP는 전략인증 9종 포함. 매출 100억 미만 보조율 70%"},
+ {id:"otc",ent:["B"],c:"cert",n:"미국 OTC 제조소 등록 컨설팅",o:"대한화장품산업연구원",amt:0,win:"연 1회",
+  note:"FDA 21 CFR Part 211 서류검토·모의실사·현장컨설팅, 25개사. 자외선차단제는 미국서 OTC 의약품 분류"}
+];
+
+/* 준비 체크리스트 */
+var CHECKS = [
+ /* 공통 */
+ {id:"ck_tm",   ent:"ALL", g:"공통", n:"상표 출원 (브랜드명·라인명)", note:"사업화 착수 전 선점. 과제 신청 시 출원 완료 상태가 평가상 유리. 특허로(patent.go.kr)", urg:1},
+ {id:"ck_tax",  ent:"ALL", g:"공통", n:"재무 결격 사유 점검", note:"국세·지방세 체납, 4대보험 미납, 부채비율, 자본잠식. 세 사업자 모두 확인"},
+ {id:"ck_brand",ent:"ALL", g:"공통", n:"브랜드 귀속 사업자 결정", note:"상표권과 인증 명의가 실제 판매 주체와 일치해야 함. 다른 결정의 전제가 되는 항목", urg:1},
+
+ /* A */
+ {id:"ck_a_hist",ent:"A", g:"확인", n:"과거 창업사업화 수혜 이력 조회", note:"3회 이상이면 창업도약패키지 신청 불가. 도약패키지·창업중심대학 도약기 수혜 이력이 있으면 그 자체로 제외. K-Startup 로그인 후 조회", urg:1},
+ {id:"ck_a_exp", ent:"A", g:"확인", n:"전년도 직접수출액 확인", note:"해외규격인증 보조율과 K-브랜드 챌린지 요건에 쓰임"},
+ {id:"ck_a_code",ent:"A", g:"확인", n:"업종코드·최근 매출 규모 확인", note:"도약패키지는 매출 요건은 없으나 도약기 기업 평가라 실적이 반영됨"},
+ {id:"ck_a_cert",ent:"A", g:"신청", n:"해외규격인증획득지원 신청", note:"11월 30일 마감. 연내 열려 있는 유일한 현금 과제", urg:1},
+ {id:"ck_a_s1",  ent:"A", g:"사이트 가입", n:"K-Startup 가입", note:"k-startup.go.kr · 창업 과제 공고와 신청, 수혜 이력 조회"},
+ {id:"ck_a_s2",  ent:"A", g:"사이트 가입", n:"기업마당 가입", note:"bizinfo.go.kr · 중앙·지자체 공고 통합, 관심분야 알림 설정"},
+ {id:"ck_a_s3",  ent:"A", g:"사이트 가입", n:"소상공인24 가입", note:"sbiz24.kr · 소상공인 과제 신청, 소상공인 확인서 발급"},
+ {id:"ck_a_s4",  ent:"A", g:"사이트 가입", n:"중소기업 수출지원센터 가입", note:"smes.go.kr · 해외규격인증 신청 창구"},
+ {id:"ck_a_s5",  ent:"A", g:"사이트 가입", n:"지역지식재산센터 가입", note:"ripc.org · 소상공인 IP창출 종합패키지"},
+ {id:"ck_a_s6",  ent:"A", g:"사이트 가입", n:"소상공인정책자금 가입", note:"ols.semas.or.kr · 융자 신청. 대행 없이 직접 가능"},
+
+ /* B */
+ {id:"ck_b_rep", ent:"B", g:"설립", n:"대표자 확정", note:"두 법인의 대표를 같은 사람으로 두면 중복 수행 제한으로 분산 효과가 사라짐", urg:1},
+ {id:"ck_b_inc", ent:"B", g:"설립", n:"법인 설립 등기", note:"2027년 1~2월 공고를 노린다면 그 전에만 설립되면 충분"},
+ {id:"ck_b_oem", ent:"B", g:"설립", n:"제조사 계약 구조 결정 (OEM / ODM)", note:"ODM이면 도매업, OEM으로 원료 명세와 원료비를 자기계정 부담하면 제조업 등록 가능. 혁신바우처 진입 여부가 여기서 갈림", urg:1},
+ {id:"ck_b_ctr", ent:"B", g:"설립", n:"계약서에 원료 명세·원료비 부담 주체 명시", note:"제조업 4요건 중 2번의 입증 자료가 됨. 계약 체결 전에 반영"},
+ {id:"ck_b_biz", ent:"B", g:"설립", n:"사업자등록 (업태·종목 확정)", note:"권장 제조업/화장품 (KSIC 20423). 차선 도매 및 소매업/화장품. 부업종에 전자상거래 소매 추가"},
+ {id:"ck_b_cert",ent:"B", g:"인허가", n:"화장품책임판매업 등록", note:"지방식품의약품안전청. 위탁생산 유통도 포함, 등록 없이는 판매 불가", urg:1},
+ {id:"ck_b_mgr", ent:"B", g:"인허가", n:"책임판매관리자 확보", note:"상시근로자 10명 이하면 대표자 겸임 가능. 조제관리사 시험 일정이 병목이 될 수 있음"},
+ {id:"ck_b_fn",  ent:"B", g:"인허가", n:"기능성화장품 심사 또는 보고", note:"자외선차단 기능. 제조사가 기보고한 처방을 쓰면 보고로 간소화"},
+ {id:"ck_b_sign",ent:"B", g:"사이트 가입", n:"사업자용 공동인증서 발급", note:"정부기관 사이트 대부분이 사업자 명의 로그인을 요구"},
+ {id:"ck_b_sme", ent:"B", g:"사이트 가입", n:"중소기업현황정보시스템 가입", note:"sminfo.mss.go.kr · 중소기업확인서 발급. 거의 모든 과제가 요구하는 기본 서류"},
+ {id:"ck_b_s1",  ent:"B", g:"사이트 가입", n:"K-Startup · 기업마당 가입", note:"법인 명의로 별도 가입 필요"},
+ {id:"ck_b_s2",  ent:"B", g:"사이트 가입", n:"고비즈코리아 가입", note:"kr.gobizkorea.com · 전자상거래 수출, 공동물류, K-브랜드 챌린지"},
+ {id:"ck_b_s3",  ent:"B", g:"사이트 가입", n:"혁신바우처 플랫폼 가입", note:"mssmiv.com · 제조업으로 등록한 경우에만 의미 있음"},
+ {id:"ck_b_s4",  ent:"B", g:"사이트 가입", n:"의약품안전나라 가입", note:"nedrug.mfds.go.kr · 책임판매업 등록, 기능성화장품 보고"},
+
+ /* C */
+ {id:"ck_c_rep", ent:"C", g:"설립", n:"대표자 확정", note:"B와 다른 사람으로 세워야 중복 수행 제한을 피함", urg:1},
+ {id:"ck_c_inc", ent:"C", g:"설립", n:"법인 설립 등기", note:"2027년 1~2월 공고 기준으로 역산"},
+ {id:"ck_c_oem", ent:"C", g:"설립", n:"제조사 계약 구조 결정 (OEM / ODM)", note:"건기식도 같은 4요건이 적용됨. 제조업 등록 가부가 여기서 갈림", urg:1},
+ {id:"ck_c_biz", ent:"C", g:"설립", n:"사업자등록 (업태·종목 확정)", note:"권장 제조업/건강기능식품 (KSIC 10897). 차선 도매 및 소매업/건강기능식품"},
+ {id:"ck_c_lic", ent:"C", g:"인허가", n:"건강기능식품 유통전문판매업 영업신고", note:"관할 보건소. 수수료 28,000원 + 면허세 27,000원, 처리 3일 내외", urg:1},
+ {id:"ck_c_edu", ent:"C", g:"인허가", n:"영업자 위생교육 이수", note:"영업신고 시 이수증 제출 필요"},
+ {id:"ck_c_wh",  ent:"C", g:"인허가", n:"보관창고 확보", note:"위생적 보관 창고와 반품·교환품 보관시설 별도 필요. 타인 시설 계약 사용도 인정"},
+ {id:"ck_c_mfr", ent:"C", g:"인허가", n:"건강기능식품 전문 제조업소 선정", note:"위탁 제조는 전문 제조업소 시설을 이용해야 함. 영업신고 요건과 직결"},
+ {id:"ck_c_sign",ent:"C", g:"사이트 가입", n:"사업자용 공동인증서 발급", note:"법인 설립 직후"},
+ {id:"ck_c_sme", ent:"C", g:"사이트 가입", n:"중소기업현황정보시스템 가입", note:"sminfo.mss.go.kr · 중소기업확인서 발급"},
+ {id:"ck_c_s1",  ent:"C", g:"사이트 가입", n:"K-Startup · 기업마당 가입", note:"법인 명의로 별도 가입"},
+ {id:"ck_c_s2",  ent:"C", g:"사이트 가입", n:"식품안전나라 가입", note:"foodsafetykorea.go.kr · 영업신고, 표시·광고 사전심의"},
+ {id:"ck_c_s3",  ent:"C", g:"사이트 가입", n:"한국식품산업클러스터진흥원 가입", note:"foodpolis.kr · 식품기업 지원사업. 입주기업 한정 과제 확인 필요"},
+ {id:"ck_c_s4",  ent:"C", g:"사이트 가입", n:"IRIS 가입", note:"iris.go.kr · 농식품부 식품 R&D 접수 시스템"}
+];
+
+var CSTAT = [
+  {k:"todo", l:"미착수", c:"c-todo",  v:"var(--off)"},
+  {k:"doing",l:"진행중", c:"c-doing", v:"var(--brass)"},
+  {k:"done", l:"완료",   c:"c-done",  v:"var(--green)"},
+  {k:"na",   l:"해당없음",c:"c-na",   v:"var(--off)"}
+];
+var PSTAT = [
+  {k:"review",l:"검토",  c:"s-review",v:"var(--slate)"},
+  {k:"prep",  l:"준비중",c:"s-prep",  v:"var(--brass)"},
+  {k:"filed", l:"신청완료",c:"s-filed",v:"var(--teal)"},
+  {k:"won",   l:"선정",  c:"s-won",   v:"var(--green)"},
+  {k:"lost",  l:"미선정",c:"s-lost",  v:"var(--clay)"},
+  {k:"hold",  l:"보류",  c:"s-hold",  v:"var(--off)"}
+];
+var OWNERS = ["미지정","운영대행","수혜기업","공동"];
+
+var DEF_P = {
+  a_name:"", a_exp:"n", a_seoul:"y",
+  b_name:"", b_mfg:"n", b_seoul:"y", b_inc:"n",
+  c_name:"", c_mfg:"n", c_seoul:"y", c_inc:"n"
+};
+
+var prof=Object.assign({},DEF_P), rows={}, tab="ALL";
+var ckFilter=null, plFilter=null, showGated=true;
+var timers={}, online=false, pendingRender=false, inflight=0;
+
+/* ── JSONP ───────────────────────────────── */
+var jseq=0;
+function jsonp(params, done, fail){
+  if(!ENDPOINT){ fail && fail(); return; }
+  var name="__vcb"+(++jseq);
+  var s=document.createElement("script");
+  var to=setTimeout(function(){ cleanup(); fail && fail(); }, 20000);
+  function cleanup(){
+    clearTimeout(to);
+    try{ delete window[name]; }catch(e){ window[name]=undefined; }
+    if(s.parentNode) s.parentNode.removeChild(s);
+  }
+  window[name]=function(res){ cleanup(); done(res); };
+  s.onerror=function(){ cleanup(); fail && fail(); };
+  params.key=PASSKEY; params.callback=name;
+  s.src=ENDPOINT+(ENDPOINT.indexOf("?")<0?"?":"&")+Object.keys(params).map(function(k){
+    return encodeURIComponent(k)+"="+encodeURIComponent(params[k]);
+  }).join("&");
+  document.head.appendChild(s);
+}
+function setSync(cls,txt){
+  document.getElementById("sync").className="sync "+cls;
+  document.getElementById("sync-t").textContent=txt;
+}
+function busy(d){
+  inflight+=d;
+  if(inflight>0) setSync("busy","저장 중");
+  else if(online) setSync("on","공유 중 · 자동 저장");
+}
+function pull(){
+  jsonp({action:"read"}, function(res){
+    if(!res || !res.ok){ online=false; setSync("off","연결 오류"); return; }
+    online=true; rows=res.tasks||{};
+    var p=res.profile||{}, next=Object.assign({},DEF_P);
+    Object.keys(DEF_P).forEach(function(k){ if(p[k]!==undefined && p[k]!=="") next[k]=p[k]; });
+    ["a_name","b_name","c_name"].forEach(function(k){ if(p[k]!==undefined) next[k]=p[k]; });
+    prof=next;
+    if(inflight===0) setSync("on","공유 중 · 자동 저장");
+    var a=document.activeElement;
+    if(a && (a.tagName==="TEXTAREA" || a.tagName==="INPUT")){ pendingRender=true; return; }
+    renderAll();
+  }, function(){ online=false; setSync("off","연결 오류 · 저장 안 됨"); });
+}
+function r(id){ return rows[id] || {status:"",owner:"미지정",memo:""}; }
+function saveRow(id, defStatus){
+  if(!ENDPOINT) return;
+  clearTimeout(timers[id]);
+  timers[id]=setTimeout(function(){
+    var o=r(id); busy(1);
+    jsonp({action:"saveTask",id:id,status:o.status||defStatus,owner:o.owner||"미지정",
+           memo:(o.memo||"").slice(0,400)},
+      function(){ busy(-1); }, function(){ busy(-1); online=false; setSync("off","저장 실패"); });
+  },600);
+}
+function saveProf(k){
+  if(!ENDPOINT) return;
+  clearTimeout(timers["p_"+k]);
+  timers["p_"+k]=setTimeout(function(){
+    busy(1);
+    jsonp({action:"saveProf",k:k,v:prof[k]},
+      function(){ busy(-1); }, function(){ busy(-1); online=false; setSync("off","저장 실패"); });
+  },500);
+}
+document.addEventListener("focusout",function(){
+  if(pendingRender){ pendingRender=false; setTimeout(renderAll,0); }
+});
+
+/* ── helpers ─────────────────────────────── */
+function won(m,chk){
+  if(m===0) return chk ? "확인" : "현물";
+  if(m>=10000){ var e=m/10000; return (e%1===0?e:e.toFixed(1))+"억"; }
+  return m.toLocaleString()+"만";
+}
+function dday(iso){ return Math.ceil((new Date(iso+"T23:59:59+09:00")-new Date())/864e5); }
+function inTab(entArr){ return tab==="ALL" || entArr.indexOf(tab)>=0; }
+function ckStat(id){ return r(id).status || "todo"; }
+function plStat(id){ return r(id).status || "review"; }
+
+/* 과제가 해당 사업자 조건에서 막히는지 */
+function gapsFor(p, ent){
+  var w=[];
+  if(!p.gate) return w;
+  if(p.gate.mfg){
+    var key = ent==="B" ? "b_mfg" : ent==="C" ? "c_mfg" : null;
+    if(key && prof[key]!=="y") w.push("제조업 미등록");
+    if(ent==="A") w.push("제조업 아님");
+  }
+  if(p.gate.seoul){
+    var sk = ent==="A"?"a_seoul":ent==="B"?"b_seoul":"c_seoul";
+    if(prof[sk]!=="y") w.push("서울 외");
+  }
+  return w;
+}
+function primaryEnt(p){
+  if(tab!=="ALL") return tab;
+  return p.ent[0];
+}
+
+/* ── 사업자 설정 ─────────────────────────── */
+function renderCfg(){
+  var box=document.getElementById("cfg"); box.innerHTML="";
+  var list = tab==="ALL" ? ["A","B","C"] : [tab];
+  list.forEach(function(e){
+    var meta=ENTS.filter(function(x){return x.k===e;})[0];
+    var head=document.createElement("div");
+    head.style.cssText="width:100%;display:flex;align-items:center;gap:10px;margin-top:4px";
+    head.innerHTML='<span style="width:4px;height:18px;background:'+meta.c+'"></span>'+
+      '<b style="font-size:13.5px">'+meta.l+'</b>'+
+      '<span style="font-size:12px;color:var(--muted)">'+meta.d+'</span>';
+    box.appendChild(head);
+
+    function fld(label, key, opts, type){
+      var d=document.createElement("div"); d.className="fld";
+      var lb=document.createElement("label"); lb.textContent=label; d.appendChild(lb);
+      var el;
+      if(type==="text"){
+        el=document.createElement("input"); el.type="text"; el.maxLength=40;
+        el.value=prof[key]||""; el.placeholder="사업자명";
+        el.addEventListener("input",function(){ prof[key]=el.value; saveProf(key); });
+      } else {
+        el=document.createElement("select");
+        opts.forEach(function(o){
+          var op=document.createElement("option"); op.value=o[0]; op.textContent=o[1];
+          if(prof[key]===o[0]) op.selected=true; el.appendChild(op);
+        });
+        el.addEventListener("change",function(){ prof[key]=el.value; saveProf(key); renderAll(); });
+      }
+      d.appendChild(el); box.appendChild(d);
+    }
+
+    if(e==="A"){
+      fld("사업자명","a_name",null,"text");
+      fld("수출 실적","a_exp",[["n","내수기업"],["y","수출 실적 있음"]]);
+      fld("본점 소재지","a_seoul",[["y","서울"],["n","서울 외"]]);
+    } else {
+      var pre=e.toLowerCase()+"_";
+      fld("법인명",pre+"name",null,"text");
+      fld("설립 여부",pre+"inc",[["n","설립 전"],["y","설립 완료"]]);
+      fld("업태",pre+"mfg",[["n","도매 및 소매업"],["y","제조업"]]);
+      fld("본점 소재지",pre+"seoul",[["y","서울"],["n","서울 외"]]);
+    }
+  });
+}
+
+/* ── 체크리스트 ──────────────────────────── */
+function renderChecks(){
+  var host=document.getElementById("checks"); host.innerHTML="";
+  var items=CHECKS.filter(function(x){ return tab==="ALL" || x.ent===tab || x.ent==="ALL"; });
+  var groups=[];
+  items.forEach(function(x){
+    var key=(x.ent==="ALL"?"공통":x.ent+" · "+x.g);
+    if(groups.indexOf(key)<0) groups.push(key);
+  });
+
+  groups.forEach(function(gk){
+    var list=items.filter(function(x){ return (x.ent==="ALL"?"공통":x.ent+" · "+x.g)===gk; });
+    var shown=list.filter(function(x){ return !ckFilter || ckStat(x.id)===ckFilter; });
+    var done=list.filter(function(x){ return ckStat(x.id)==="done"; }).length;
+    var na=list.filter(function(x){ return ckStat(x.id)==="na"; }).length;
+    var tot=list.length-na;
+
+    var ec=gk==="공통"?"var(--green)":ENTS.filter(function(z){return z.k===gk.charAt(0);})[0].c;
+    var box=document.createElement("div"); box.className="grp";
+    var h=document.createElement("div"); h.className="grp-h";
+    h.innerHTML='<span class="sw" style="background:'+ec+'"></span><h3>'+gk+'</h3>'+
+      '<span class="meta"><span>완료 <b>'+done+'</b> / '+tot+'건</span></span>';
+    box.appendChild(h);
+
+    if(shown.length===0){
+      var em=document.createElement("div"); em.className="empty";
+      em.textContent="현재 필터에 해당하는 항목 없음"; box.appendChild(em);
+    } else {
+      var ul=document.createElement("ul"); ul.className="ck";
+      shown.forEach(function(x){
+        var st=ckStat(x.id);
+        var li=document.createElement("li");
+        li.className = st==="done"?"done":(st==="na"?"na":"");
+
+        var sd=CSTAT.filter(function(s){return s.k===st;})[0];
+        var sel=document.createElement("select");
+        CSTAT.forEach(function(s){
+          var o=document.createElement("option"); o.value=s.k; o.textContent=s.l;
+          if(s.k===st) o.selected=true; sel.appendChild(o);
+        });
+        sel.style.borderLeft="3px solid "+sd.v;
+        sel.addEventListener("change",function(){
+          rows[x.id]=Object.assign({},r(x.id),{status:sel.value}); saveRow(x.id,"todo"); renderAll();
+        });
+
+        var txt=document.createElement("div"); txt.className="txt";
+        txt.innerHTML="<b>"+x.n+(x.urg?'<span class="tag">우선</span>':"")+"</b><p>"+x.note+"</p>";
+
+        var ta=document.createElement("textarea"); ta.rows=1; ta.maxLength=400;
+        ta.value=r(x.id).memo||""; ta.placeholder="메모";
+        ta.addEventListener("input",function(){
+          rows[x.id]=Object.assign({},r(x.id),{memo:ta.value,status:ckStat(x.id)}); saveRow(x.id,"todo");
+        });
+
+        li.appendChild(sel); li.appendChild(txt); li.appendChild(ta);
+        ul.appendChild(li);
+      });
+      box.appendChild(ul);
+    }
+    host.appendChild(box);
+  });
+
+  var ctl=document.getElementById("ck-ctl"); ctl.innerHTML="";
+  CSTAT.forEach(function(s){
+    var n=items.filter(function(x){ return ckStat(x.id)===s.k; }).length;
+    var b=document.createElement("button");
+    b.className="chip "+s.c; b.type="button";
+    b.setAttribute("aria-pressed", ckFilter===s.k?"true":"false");
+    b.innerHTML=s.l+" <b>"+n+"</b>";
+    b.addEventListener("click",function(){ ckFilter = ckFilter===s.k?null:s.k; renderChecks(); });
+    ctl.appendChild(b);
+  });
+}
+
+/* ── 과제 파이프라인 ─────────────────────── */
+function renderPipeline(){
+  var host=document.getElementById("cats"); host.innerHTML="";
+  var elig=0,sum=0,gated=0,minD=null,minN="",allN=0;
+
+  CATS.forEach(function(cat){
+    var items=CATALOG.filter(function(p){ return p.c===cat.k && inTab(p.ent); });
+    allN+=items.length;
+    var ce=0,cs=0,trs=[];
+
+    items.forEach(function(p){
+      var ent=primaryEnt(p);
+      var w=gapsFor(p,ent), ok=w.length===0, st=plStat(p.id);
+      if(ok){ elig++; ce++; sum+=(p.loan?0:p.amt); cs+=(p.loan?0:p.amt); } else gated++;
+      if(p.due && ok && st!=="won" && st!=="lost"){
+        var d=dday(p.due);
+        if(d>=0 && (minD===null||d<minD)){ minD=d; minN=p.n; }
+      }
+      if(!ok && !showGated) return;
+      if(plFilter && st!==plFilter) return;
+
+      var sd=PSTAT.filter(function(s){return s.k===st;})[0];
+      var tr=document.createElement("tr");
+      if(!ok) tr.className="gated";
+
+      var bd="";
+      p.ent.forEach(function(e){
+        var m=ENTS.filter(function(z){return z.k===e;})[0];
+        bd+='<span class="bd" style="background:'+m.c+'20;color:'+m.c+'">'+e+'</span>';
+      });
+      if(p.due && dday(p.due)>=0) bd+='<span class="bd bd-dday">D-'+dday(p.due)+'</span>';
+      if(p.gate && p.gate.mfg) bd+='<span class="bd bd-mfg">제조업</span>';
+      if(p.loan) bd+='<span class="bd bd-loan">융자</span>';
+      if(p.amt===0 && !p.chk) bd+='<span class="bd bd-kind">현물</span>';
+      if(p.chk) bd+='<span class="bd bd-chk">금액 확인</span>';
+
+      var c1=document.createElement("td"); c1.className="nm";
+      c1.innerHTML=p.n+bd+"<small>"+p.o+"</small>";
+      var c2=document.createElement("td"); c2.className="amt r"; c2.textContent=won(p.amt,p.chk);
+      var c3=document.createElement("td"); c3.className="win"; c3.textContent=p.win;
+
+      var c4=document.createElement("td");
+      var sel=document.createElement("select");
+      PSTAT.forEach(function(s){
+        var o=document.createElement("option"); o.value=s.k; o.textContent=s.l;
+        if(s.k===st) o.selected=true; sel.appendChild(o);
+      });
+      sel.style.borderLeft="3px solid "+sd.v;
+      sel.addEventListener("change",function(){
+        rows[p.id]=Object.assign({},r(p.id),{status:sel.value}); saveRow(p.id,"review"); renderAll();
+      });
+      c4.appendChild(sel);
+
+      var c5=document.createElement("td");
+      var os=document.createElement("select");
+      OWNERS.forEach(function(v){
+        var o=document.createElement("option"); o.value=v; o.textContent=v;
+        if(v===(r(p.id).owner||"미지정")) o.selected=true; os.appendChild(o);
+      });
+      os.addEventListener("change",function(){
+        rows[p.id]=Object.assign({},r(p.id),{owner:os.value,status:plStat(p.id)}); saveRow(p.id,"review");
+      });
+      c5.appendChild(os);
+
+      var c6=document.createElement("td");
+      var ta=document.createElement("textarea"); ta.rows=1; ta.maxLength=400;
+      ta.value=r(p.id).memo||""; ta.placeholder="다음 액션 / 메모";
+      ta.addEventListener("input",function(){
+        rows[p.id]=Object.assign({},r(p.id),{memo:ta.value,status:plStat(p.id)}); saveRow(p.id,"review");
+      });
+      c6.appendChild(ta);
+
+      var c7=document.createElement("td"); c7.className="note";
+      c7.innerHTML=(ok?"":"<b>"+w.join(", ")+"</b><br>")+p.note;
+
+      [c1,c2,c3,c4,c5,c6,c7].forEach(function(c){tr.appendChild(c);});
+      trs.push(tr);
+    });
+
+    if(items.length===0) return;
+    var box=document.createElement("div"); box.className="grp";
+    var h=document.createElement("div"); h.className="grp-h";
+    h.innerHTML='<span class="sw" style="background:'+cat.c+'"></span><h3>'+cat.l+'</h3>'+
+      '<span class="meta"><span>신청 가능 <b>'+ce+'</b> / '+items.length+'건</span>'+
+      '<span>소계 <b>'+won(cs)+'</b>원</span></span>';
+    box.appendChild(h);
+    if(trs.length===0){
+      var em=document.createElement("div"); em.className="empty";
+      em.textContent="현재 필터에 해당하는 과제 없음"; box.appendChild(em);
+    } else {
+      var sc=document.createElement("div"); sc.className="tscroll";
+      var tb=document.createElement("table");
+      tb.innerHTML='<thead><tr><th>과제</th><th class="r">지원금 상한</th><th>공고 시기</th>'+
+        '<th style="width:112px">상태</th><th style="width:104px">담당</th>'+
+        '<th style="width:200px">메모</th><th>비고</th></tr></thead>';
+      var body=document.createElement("tbody");
+      trs.forEach(function(t){ body.appendChild(t); });
+      tb.appendChild(body); sc.appendChild(tb); box.appendChild(sc);
+    }
+    host.appendChild(box);
+  });
+
+  document.getElementById("k-elig").textContent=elig;
+  document.getElementById("k-all").textContent=allN;
+  document.getElementById("k-sum").textContent=won(sum);
+  document.getElementById("k-dday").innerHTML = minD===null ? "–" :
+    "D-"+minD+'<small>'+minN.slice(0,9)+'</small>';
+
+  var ctl=document.getElementById("pl-ctl"); ctl.innerHTML="";
+  var vis=CATALOG.filter(function(p){ return inTab(p.ent); });
+  PSTAT.forEach(function(s){
+    var n=vis.filter(function(p){ return plStat(p.id)===s.k; }).length;
+    var b=document.createElement("button");
+    b.className="chip "+s.c; b.type="button";
+    b.setAttribute("aria-pressed", plFilter===s.k?"true":"false");
+    b.innerHTML=s.l+" <b>"+n+"</b>";
+    b.addEventListener("click",function(){ plFilter = plFilter===s.k?null:s.k; renderPipeline(); });
+    ctl.appendChild(b);
+  });
+  var g=document.createElement("button");
+  g.className="ghost"; g.type="button";
+  g.textContent=showGated?"요건 불충족 "+gated+"건 숨기기":"요건 불충족 "+gated+"건 보기";
+  g.addEventListener("click",function(){ showGated=!showGated; renderPipeline(); });
+  ctl.appendChild(g);
+}
+
+/* ── 탭 & KPI ────────────────────────────── */
+function renderTabs(){
+  var t=document.getElementById("tabs"); t.innerHTML="";
+  var defs=[{k:"ALL",l:"전체"}].concat(ENTS.map(function(e){return {k:e.k,l:e.k+" · "+e.l};}));
+  defs.forEach(function(d){
+    var items=CHECKS.filter(function(x){ return d.k==="ALL" || x.ent===d.k || x.ent==="ALL"; });
+    var na=items.filter(function(x){return ckStat(x.id)==="na";}).length;
+    var done=items.filter(function(x){return ckStat(x.id)==="done";}).length;
+    var tot=items.length-na;
+    var b=document.createElement("button"); b.type="button";
+    b.setAttribute("aria-selected", tab===d.k?"true":"false");
+    b.innerHTML=d.l+"<b>"+done+"/"+tot+"</b>";
+    b.addEventListener("click",function(){ tab=d.k; ckFilter=null; plFilter=null; renderAll(); });
+    t.appendChild(b);
+  });
+}
+function renderKpi(){
+  var items=CHECKS.filter(function(x){ return tab==="ALL" || x.ent===tab || x.ent==="ALL"; });
+  var na=items.filter(function(x){return ckStat(x.id)==="na";}).length;
+  var done=items.filter(function(x){return ckStat(x.id)==="done";}).length;
+  var tot=items.length-na;
+  var pct= tot? Math.round(done/tot*100) : 0;
+  document.getElementById("k-pct").textContent=pct;
+  document.getElementById("k-bar").style.width=pct+"%";
+  document.getElementById("k-left").textContent=tot-done;
+}
+function renderAll(){ renderTabs(); renderCfg(); renderChecks(); renderPipeline(); renderKpi(); }
+
+renderAll();
+if(!ENDPOINT){
+  var su=document.getElementById("setup"); su.hidden=false;
+  su.innerHTML='<b>설정 필요</b> · 상단 ENDPOINT에 Apps Script 웹 앱 URL을 넣으면 구글시트에 저장되고 공유됩니다.';
+  setSync("off","단독 모드 · 저장 안 됨");
+} else {
+  setSync("busy","불러오는 중"); pull();
+  setInterval(function(){ if(inflight===0) pull(); }, 20000);
+  document.addEventListener("visibilitychange",function(){
+    if(!document.hidden && inflight===0) pull();
+  });
+}
+</script>
+</body>
+</html>
